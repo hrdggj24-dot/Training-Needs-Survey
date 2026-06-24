@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Training Needs Survey Analyzer — Multi-file Upload, Master Data, Training Plan">
+<title>Training Needs Survey Analyzer</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pri:#3f5e85;--pri2:#557099;--acc:#c98a45;
+  --g:#3f9d6c;--r:#d46a6a;--y:#dca63f;
+  --bg:#eef2f7;--bg2:#e6ecf4;--card:#ffffff;--bdr:#e3e9f1;
+  --tx:#2b3441;--muted:#7a8694;
+  --hdr1:#44608a;--hdr2:#58739d;--tabbg:#3c587e;
+}
+[data-theme="sage"]{--pri:#4a7c63;--pri2:#5d9079;--acc:#c0894a;--bg:#edf2ee;--bg2:#e5ece6;--card:#ffffff;--bdr:#dde7df;--tx:#2c3630;--muted:#77857c;--hdr1:#4d8067;--hdr2:#62937a;--tabbg:#44735c}
+[data-theme="sand"]{--pri:#8a6f52;--pri2:#9d8462;--acc:#5f8a7a;--bg:#f4f1eb;--bg2:#ede7dd;--card:#fffdfb;--bdr:#eae1d5;--tx:#3a342c;--muted:#877d6f;--hdr1:#8c7155;--hdr2:#9f8767;--tabbg:#7d654b}
+[data-theme="lavender"]{--pri:#685d86;--pri2:#7c719c;--acc:#c0895a;--bg:#f0eef5;--bg2:#e8e4f0;--card:#ffffff;--bdr:#e4deec;--tx:#322c3c;--muted:#7e7689;--hdr1:#6a5f8a;--hdr2:#7d72a0;--tabbg:#5f5580}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans Thai','Noto Sans Thai','Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--tx);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.ic{width:1.15em;height:1.15em;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-0.18em;flex:none}
+.ic-empty{width:50px;height:50px;stroke-width:1.4;color:var(--pri);opacity:.55}
+.spin{animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hdr{background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#fff;padding:18px 32px;display:flex;align-items:center;gap:15px}
+.hdr h1{font-size:21px;font-weight:600;letter-spacing:.2px}.hdr p{font-size:12.5px;opacity:.85;margin-top:2px;font-weight:300}
+.hdr-ico{display:flex}.hdr-ico svg{width:30px;height:30px;stroke-width:1.7}
+.theme-sw{margin-left:auto;display:flex;gap:9px;align-items:center}
+.theme-sw .dot{width:21px;height:21px;border-radius:50%;border:2px solid rgba(255,255,255,.45);cursor:pointer;padding:0;transition:transform .15s,border-color .15s}
+.theme-sw .dot:hover{transform:scale(1.12)}
+.theme-sw .dot.on{border-color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.22)}
+
+.tabs{background:var(--tabbg);display:flex;padding:0 24px;gap:4px}
+.tab{display:inline-flex;align-items:center;gap:8px;padding:13px 20px;color:rgba(255,255,255,.62);background:none;border:none;cursor:pointer;font-size:14px;font-weight:500;font-family:inherit;border-bottom:3px solid transparent;transition:all .2s}
+.tab.on{color:#fff;border-bottom-color:var(--acc)}.tab:hover{color:#fff}
+.tc{display:none;padding:30px 32px;max-width:1500px;margin:0 auto}.tc.on{display:block}
+
+/* UPLOAD */
+.upzone{border:2px dashed var(--bdr);border-radius:18px;padding:52px 40px;text-align:center;background:var(--card);cursor:pointer;max-width:720px;margin:0 auto;transition:all .2s}
+.upzone:hover,.upzone.drag{border-color:var(--pri2);background:var(--bg2)}
+.upzone .ic-up{width:52px;height:52px;stroke-width:1.4;color:var(--pri);opacity:.8}
+.upzone h3{font-size:18px;font-weight:600;color:var(--pri);margin:16px 0 8px}.upzone p{color:var(--muted);font-size:13.5px;margin-bottom:22px;line-height:1.7}
+.upbtn{display:inline-flex;align-items:center;gap:9px;background:var(--pri);color:#fff;border:none;padding:12px 26px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:500;font-family:inherit;transition:background .2s}
+.upbtn:hover{background:var(--pri2)}
+
+/* FILE LIST */
+.file-list{max-width:720px;margin:18px auto 0;display:flex;flex-direction:column;gap:10px}
+.file-item{background:var(--card);border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:13px;border:1px solid var(--bdr);box-shadow:0 1px 2px rgba(40,55,80,.04)}
+.file-item.ok{border-color:#bfe0cd;background:#f3faf6}
+.file-item.err{border-color:#eebcbc;background:#fdf5f5}
+.file-item.loading{border-color:#c4d4ea;background:#f4f7fc}
+.fi-icon{display:flex;flex-shrink:0;color:var(--muted)}.fi-icon .ic{width:22px;height:22px}
+.file-item.ok .fi-icon{color:var(--g)}.file-item.err .fi-icon{color:var(--r)}.file-item.loading .fi-icon{color:var(--pri2)}
+.fi-name{flex:1;font-size:13.5px;font-weight:600;color:var(--tx)}
+.fi-dept{font-size:12px;color:var(--muted)}
+.fi-count{font-size:12px;color:var(--g);font-weight:600}
+.fi-err{font-size:12px;color:var(--r)}
+.fi-rm{display:flex;background:none;border:none;cursor:pointer;color:var(--muted);padding:4px;border-radius:6px}
+.fi-rm:hover{color:var(--r);background:rgba(0,0,0,.04)}
+
+/* MASTER SUMMARY BAR */
+.master-bar{max-width:720px;margin:18px auto 0;background:linear-gradient(135deg,var(--hdr1),var(--hdr2));color:#fff;border-radius:16px;padding:18px 24px;display:none;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:0 4px 16px rgba(40,55,80,.12)}
+.master-bar.show{display:flex}
+.mb-stat{text-align:center}.mb-num{font-size:26px;font-weight:700}.mb-lbl{font-size:11px;opacity:.82;margin-top:1px}
+.mb-btns{display:flex;gap:9px;flex-wrap:wrap}
+.mb-btn{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.28);padding:9px 15px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:all .2s}
+.mb-btn:hover{background:rgba(255,255,255,.28)}
+.mb-btn.acc{background:var(--acc);border-color:var(--acc)}
+
+/* SUMMARY FORMAT INFO */
+.fmt-info{max-width:720px;margin:18px auto 0;background:var(--card);border-radius:16px;padding:20px 22px;border:1px solid var(--bdr);box-shadow:0 1px 2px rgba(40,55,80,.04)}
+.fmt-info h4{display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600;color:var(--pri);margin-bottom:12px}
+.fmt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fmt-card{background:var(--bg2);border-radius:11px;padding:14px 16px;border:1px solid var(--bdr)}
+.fmt-card h5{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--pri);margin-bottom:7px}
+.fmt-card p{font-size:11.5px;color:var(--muted);line-height:1.75}
+
+/* CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:14px;margin-bottom:22px}
+.card{background:var(--card);border-radius:14px;padding:16px 18px;border:1px solid var(--bdr);border-left:4px solid var(--pri);box-shadow:0 1px 3px rgba(40,55,80,.05)}
+.card.g{border-left-color:var(--g)}.card.o{border-left-color:var(--acc)}.card.r{border-left-color:var(--r)}
+.clbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:500}
+.cval{font-size:27px;font-weight:700;color:var(--pri);margin:5px 0 1px}
+.card.g .cval{color:var(--g)}.card.o .cval{color:var(--acc)}.card.r .cval{color:var(--r)}
+.csub{font-size:11px;color:var(--muted)}
+
+/* CHARTS */
+.chr{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.chc{background:var(--card);border-radius:14px;padding:18px 20px;border:1px solid var(--bdr);box-shadow:0 1px 3px rgba(40,55,80,.05)}
+.chc h3{display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--pri);margin-bottom:14px}
+.chc h3 .ic{color:var(--pri2)}
+.chw{position:relative;height:210px}
+
+/* FILTER BAR */
+.fbar{background:var(--card);border-radius:14px;padding:14px 18px;border:1px solid var(--bdr);box-shadow:0 1px 3px rgba(40,55,80,.05);margin-bottom:18px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.fbar label{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:500;color:var(--pri);white-space:nowrap}
+.fbar label .ic{color:var(--pri2)}
+.fbar select,.fbar input{padding:8px 12px;border:1px solid var(--bdr);border-radius:9px;font-size:13px;font-family:inherit;color:var(--tx);background:var(--card)}
+.fbar select:focus,.fbar input:focus{outline:none;border-color:var(--pri2)}
+.fbtn{display:inline-flex;align-items:center;gap:7px;background:var(--pri);color:#fff;border:none;padding:9px 15px;border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;transition:background .2s}
+.fbtn:hover{background:var(--pri2)}.fbtn.g{background:var(--g)}.fbtn.g:hover{filter:brightness(.94)}
+.fbar-sep{width:1px;height:22px;background:var(--bdr)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--bdr);box-shadow:0 1px 3px rgba(40,55,80,.05);background:var(--card)}
+table{width:100%;border-collapse:collapse;font-size:12.5px;background:var(--card)}
+thead th{background:var(--pri);color:#fff;padding:9px 10px;text-align:center;font-weight:600;white-space:nowrap;border:1px solid rgba(255,255,255,.15);position:sticky;top:0;z-index:2}
+thead tr:first-child th{background:var(--tabbg)}
+.th-m{background:var(--pri2) !important;font-size:11px}
+tbody tr:hover{background:var(--bg2)}
+tbody td{padding:7px 10px;border:1px solid var(--bdr);vertical-align:middle;white-space:nowrap}
+tbody tr.cat-hdr td{background:var(--bg2);font-weight:600;color:var(--pri);border-top:2px solid var(--pri)}
+.td-c{white-space:normal;min-width:175px;max-width:260px;line-height:1.45}
+.td-o{white-space:normal;min-width:135px;max-width:185px;font-size:11px;color:var(--muted);line-height:1.4}
+.td-n{text-align:center}.td-m{text-align:center;font-size:11px;color:var(--pri2);font-weight:600}
+.xk{text-align:center;color:var(--pri2);font-weight:700}
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-ih{background:#d8f0e3;color:#1f7a48}.b-pub{background:#dde9fb;color:#234f93}
+.b-law{background:#f8dede;color:#a84444}.b-int{background:#eef2fb;color:#3a4a8f}
+.b-ext{background:#fbeed7;color:#8a5e1a}
+.b-src{background:#eee9f7;color:#6a4e9a;font-size:10px}
+.no-data{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;color:var(--muted);padding:60px 30px;font-size:14px}
+.no-data b{font-size:16px}
+
+.legend{display:flex;gap:16px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.li{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.ld{width:12px;height:12px;border-radius:3px}
+.mtag{display:inline-block;background:var(--pri);color:#fff;padding:2px 7px;border-radius:5px;font-size:10.5px;margin:1px}
+
+@media print{.tabs,.hdr .hdr-sub,.fbar,.mb-btn,button{display:none!important}body{background:#fff}table{font-size:9px}}
+@media(max-width:768px){.chr{grid-template-columns:1fr}.tc{padding:12px}.fmt-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="ic-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 11h6M9 15h6"/></symbol>
+<symbol id="ic-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+<symbol id="ic-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></symbol>
+<symbol id="ic-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10M12 20V4M6 20v-6"/></symbol>
+<symbol id="ic-database" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></symbol>
+<symbol id="ic-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+<symbol id="ic-building" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v18M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 22v-5h6v5"/></symbol>
+<symbol id="ic-shuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></symbol>
+<symbol id="ic-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></symbol>
+<symbol id="ic-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+<symbol id="ic-printer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></symbol>
+<symbol id="ic-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol>
+<symbol id="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></symbol>
+<symbol id="ic-x-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></symbol>
+<symbol id="ic-loader" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></symbol>
+<symbol id="ic-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="ic-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="ic-package" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.5 4.21M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16zM3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></symbol>
+<symbol id="ic-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+<symbol id="ic-target" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+<symbol id="ic-money" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+<symbol id="ic-bulb" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></symbol>
+<symbol id="ic-file" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></symbol>
+</defs></svg>
+
+<div class="hdr">
+  <div class="hdr-ico"><svg class="ic"><use href="#ic-clipboard"></use></svg></div>
+  <div>
+    <h1>Training Needs Survey Analyzer</h1>
+    <p class="hdr-sub">อัปโหลดหลายไฟล์พร้อมกัน → รวม Master Data → Training Plan รวมทุกหน่วยงาน</p>
+  </div>
+  <div class="theme-sw" title="เปลี่ยนโทนสี">
+    <button class="dot" data-t="slate" style="background:#557099" onclick="setTheme('slate')" title="ฟ้า"></button>
+    <button class="dot" data-t="sage" style="background:#5d9079" onclick="setTheme('sage')" title="เขียวสะอิ้ง"></button>
+    <button class="dot" data-t="sand" style="background:#9d8462" onclick="setTheme('sand')" title="น้ำตาลอุ่น"></button>
+    <button class="dot" data-t="lavender" style="background:#7c719c" onclick="setTheme('lavender')" title="ม่วงอ่อน"></button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab on" onclick="goTab('upload',this)"><svg class="ic"><use href="#ic-upload"></use></svg> อัปโหลด</button>
+  <button class="tab" onclick="goTab('plan',this)"><svg class="ic"><use href="#ic-calendar"></use></svg> Training Plan</button>
+  <button class="tab" onclick="goTab('dash',this)"><svg class="ic"><use href="#ic-chart"></use></svg> Dashboard</button>
+  <button class="tab" onclick="goTab('master',this)"><svg class="ic"><use href="#ic-database"></use></svg> Master Data</button>
+</div>
+
+<!-- ===== UPLOAD ===== -->
+<div id="tab-upload" class="tc on">
+  <div class="upzone" id="dz"
+    ondragover="event.preventDefault();this.classList.add('drag')"
+    ondragleave="this.classList.remove('drag')"
+    ondrop="doDrop(event)">
+    <div class="ic-up"><svg class="ic ic-up"><use href="#ic-upload"></use></svg></div>
+    <h3>อัปโหลดไฟล์ Training Needs Survey</h3>
+    <p>เลือกหลายไฟล์พร้อมกันได้ (Ctrl+Click หรือ Shift+Click)<br>รองรับ .xlsx / .xls จากทุกหน่วยงาน — รวมเป็น Master Data อัตโนมัติ</p>
+    <button class="upbtn" onclick="document.getElementById('fi').click()"><svg class="ic"><use href="#ic-upload"></use></svg> เลือกไฟล์ (หลายไฟล์)</button>
+    <input type="file" id="fi" accept=".xlsx,.xls" multiple onchange="handleFiles(this.files)" style="display:none">
+  </div>
+
+  <div id="fileList" class="file-list"></div>
+
+  <div id="masterBar" class="master-bar">
+    <div class="mb-stat"><div class="mb-num" id="mbTotal">0</div><div class="mb-lbl">หลักสูตรรวม</div></div>
+    <div class="mb-stat"><div class="mb-num" id="mbDept">0</div><div class="mb-lbl">หน่วยงาน</div></div>
+    <div class="mb-stat"><div class="mb-num" id="mbIH">0</div><div class="mb-lbl">In-house</div></div>
+    <div class="mb-stat"><div class="mb-num" id="mbPub">0</div><div class="mb-lbl">Public</div></div>
+    <div class="mb-stat"><div class="mb-num" id="mbFiles">0</div><div class="mb-lbl">ไฟล์</div></div>
+    <div class="mb-btns">
+      <button class="mb-btn acc" onclick="goTabBtn('plan')"><svg class="ic"><use href="#ic-calendar"></use></svg> ดู Training Plan</button>
+      <button class="mb-btn" onclick="goTabBtn('dash')"><svg class="ic"><use href="#ic-chart"></use></svg> Dashboard</button>
+      <button class="mb-btn" onclick="exportMasterXlsx()"><svg class="ic"><use href="#ic-download"></use></svg> Export Master</button>
+      <button class="mb-btn" style="background:var(--r);border-color:var(--r)" onclick="clearAll()"><svg class="ic"><use href="#ic-trash"></use></svg> ล้างข้อมูล</button>
+    </div>
+  </div>
+
+  <div class="fmt-info" style="margin-top:16px">
+    <h4><svg class="ic"><use href="#ic-info"></use></svg> รูปแบบไฟล์ที่รองรับ (รองรับอัตโนมัติทั้งสองแบบ)</h4>
+    <div class="fmt-grid">
+      <div class="fmt-card">
+        <h5><svg class="ic"><use href="#ic-file"></use></svg> แบบ Survey Form (ไฟล์ต่อหน่วยงาน)</h5>
+        <p>Sheet: "Training needs survey Form_*"<br>
+        แถว 1: ชื่อหน่วยงานใน Cell C1<br>
+        แถว 12: Header | แถว 13: Sub-header<br>
+        <b>คอลัมน์:</b> A=No, B=ทักษะ, C=วัตถุประสงค์, D=ชื่อหลักสูตร, E=เกณฑ์, F=ตำแหน่ง, G=จำนวนคน, H=เดือน, I=ค่าใช้จ่าย, J=สถาบัน</p>
+      </div>
+      <div class="fmt-card">
+        <h5><svg class="ic"><use href="#ic-chart"></use></svg> แบบ Public Sheet (รวมหลายหน่วยงาน)</h5>
+        <p>Sheet: "Public"<br>
+        แถว 2: Header | แถว 3: Sub-header<br>
+        <b>คอลัมน์:</b> A=ทักษะ, B=วัตถุประสงค์, C=ชื่อหลักสูตร, D=เกณฑ์, E=ตำแหน่ง, F=จำนวนคน, G=เดือน, H=ค่าใช้จ่าย, I=สถาบัน, J=หน่วยงาน</p>
+      </div>
+    </div>
+    <p style="font-size:11.5px;color:var(--muted);margin-top:10px;display:flex;align-items:center;gap:6px"><svg class="ic"><use href="#ic-bulb"></use></svg> เกณฑ์ In-house = จำนวนพนักงาน ≥ 10 คน &nbsp;|&nbsp; หลักสูตรตามกฎหมาย: ไม่จัดกลุ่มรวม</p>
+  </div>
+</div>
+
+<!-- ===== TRAINING PLAN ===== -->
+<div id="tab-plan" class="tc">
+  <div id="plan-empty" class="no-data"><svg class="ic ic-empty"><use href="#ic-calendar"></use></svg><b style="color:var(--pri)">ยังไม่มีข้อมูล</b><span style="font-size:13px">กรุณาอัปโหลดไฟล์ก่อน</span></div>
+  <div id="plan-content" style="display:none">
+    <div class="fbar">
+      <label><svg class="ic"><use href="#ic-folder"></use></svg></label>
+      <select id="fCat" onchange="renderPlan()"><option value="">ทุก Category</option></select>
+      <div class="fbar-sep"></div>
+      <label><svg class="ic"><use href="#ic-building"></use></svg></label>
+      <select id="fDept" onchange="renderPlan()"><option value="">ทุกหน่วยงาน</option></select>
+      <div class="fbar-sep"></div>
+      <label><svg class="ic"><use href="#ic-calendar"></use></svg></label>
+      <select id="fMonth" onchange="renderPlan()">
+        <option value="">ทุกเดือน</option>
+        <option value="1">ม.ค.</option><option value="2">ก.พ.</option><option value="3">มี.ค.</option>
+        <option value="4">เม.ย.</option><option value="5">พ.ค.</option><option value="6">มิ.ย.</option>
+        <option value="7">ก.ค.</option><option value="8">ส.ค.</option><option value="9">ก.ย.</option>
+        <option value="10">ต.ค.</option><option value="11">พ.ย.</option><option value="12">ธ.ค.</option>
+      </select>
+      <div class="fbar-sep"></div>
+      <label><svg class="ic"><use href="#ic-shuffle"></use></svg></label>
+      <select id="fType" onchange="renderPlan()">
+        <option value="">ทั้งหมด</option>
+        <option value="In-house">In-house</option>
+        <option value="Public">Public</option>
+      </select>
+      <div class="fbar-sep"></div>
+      <label><svg class="ic"><use href="#ic-search"></use></svg></label>
+      <input type="text" id="fSearch" placeholder="ค้นหาหลักสูตร..." oninput="renderPlan()" style="width:170px">
+      <button class="fbtn g" onclick="exportPlanXlsx()"><svg class="ic"><use href="#ic-download"></use></svg> Export Excel</button>
+      <button class="fbtn" onclick="window.print()" style="background:var(--muted)"><svg class="ic"><use href="#ic-printer"></use></svg> Print</button>
+    </div>
+    <div class="legend">
+      <div class="li"><div class="ld" style="background:#2a9d5c"></div>In-house (≥10 คน)</div>
+      <div class="li"><div class="ld" style="background:#2d5a9e"></div>Public (<10 คน)</div>
+      <div class="li"><div class="ld" style="background:#e05252"></div>ตามกฎหมาย</div>
+      <div class="li" style="color:var(--muted);font-size:10px">ตัวเลขในช่องเดือน = จำนวนรุ่นที่วางแผน</div>
+    </div>
+    <div class="tbl-wrap"><div id="planTbl"></div></div>
+  </div>
+</div>
+
+<!-- ===== DASHBOARD ===== -->
+<div id="tab-dash" class="tc">
+  <div id="dash-empty" class="no-data"><svg class="ic ic-empty"><use href="#ic-chart"></use></svg><b style="color:var(--pri)">ยังไม่มีข้อมูล</b></div>
+  <div id="dash-content" style="display:none">
+    <div class="fbar" style="margin-bottom:14px">
+      <label><svg class="ic"><use href="#ic-building"></use></svg> หน่วยงาน:</label>
+      <select id="dDept" onchange="renderDash()"><option value="">ทุกหน่วยงาน</option></select>
+    </div>
+    <div class="cards" id="sumCards"></div>
+    <div class="chr">
+      <div class="chc"><h3><svg class="ic"><use href="#ic-package"></use></svg> หลักสูตรตาม Category</h3><div class="chw"><canvas id="cCat" role="img" aria-label="bar chart by category"></canvas></div></div>
+      <div class="chc"><h3><svg class="ic"><use href="#ic-building"></use></svg> In-house vs Public แยกหน่วยงาน</h3><div class="chw"><canvas id="cDept" role="img" aria-label="stacked bar by dept"></canvas></div></div>
+    </div>
+    <div class="chr">
+      <div class="chc"><h3><svg class="ic"><use href="#ic-calendar"></use></svg> หลักสูตรตามเดือน</h3><div class="chw"><canvas id="cMonth" role="img" aria-label="line chart monthly"></canvas></div></div>
+      <div class="chc"><h3><svg class="ic"><use href="#ic-money"></use></svg> งบประมาณตามหน่วยงาน (บาท)</h3><div class="chw"><canvas id="cBudget" role="img" aria-label="bar chart budget"></canvas></div></div>
+    </div>
+    <div class="chr">
+      <div class="chc"><h3><svg class="ic"><use href="#ic-users"></use></svg> Top 10 หลักสูตร (จำนวนคน)</h3><div class="chw" style="height:260px"><canvas id="cPeople" role="img" aria-label="horizontal bar top courses"></canvas></div></div>
+      <div class="chc"><h3><svg class="ic"><use href="#ic-target"></use></svg> สัดส่วนประเภทเกณฑ์</h3><div class="chw"><canvas id="cCrit" role="img" aria-label="pie criteria types"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MASTER DATA ===== -->
+<div id="tab-master" class="tc">
+  <div id="master-empty" class="no-data"><svg class="ic ic-empty"><use href="#ic-database"></use></svg><b style="color:var(--pri)">ยังไม่มีข้อมูล</b></div>
+  <div id="master-content" style="display:none">
+    <div class="fbar">
+      <label><svg class="ic"><use href="#ic-search"></use></svg></label>
+      <input type="text" id="mSearch" placeholder="ค้นหา..." oninput="renderMaster()" style="width:200px">
+      <select id="mCat" onchange="renderMaster()"><option value="">ทุก Category</option></select>
+      <select id="mDept" onchange="renderMaster()"><option value="">ทุกหน่วยงาน</option></select>
+      <select id="mType" onchange="renderMaster()">
+        <option value="">ทุกประเภท</option>
+        <option value="In-house">In-house</option>
+        <option value="Public">Public</option>
+      </select>
+      <button class="fbtn g" onclick="exportMasterXlsx()"><svg class="ic"><use href="#ic-download"></use></svg> Export Master Excel</button>
+      <span id="mCount" style="font-size:11px;color:var(--muted);margin-left:4px"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>#</th><th>ไฟล์ต้นทาง</th><th>หน่วยงาน</th><th>Category</th>
+          <th class="td-c">ชื่อหลักสูตร</th><th>ประเภท</th>
+          <th>กลุ่มเป้าหมาย</th><th>จำนวน (คน)</th>
+          <th>เดือน</th><th>ค่าใช้จ่าย (฿)</th><th>สถาบัน</th><th>เกณฑ์</th>
+        </tr></thead>
+        <tbody id="masterTbl"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// CONSTANTS & CONFIG
+// ============================================================
+const MN=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+          'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const MS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+function svgIcon(id,cls){return '<svg class="ic '+(cls||'')+'"><use href="#'+id+'"></use></svg>';}
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()||'#3f5e85';}
+function setTheme(t){document.documentElement.setAttribute('data-theme',t);try{localStorage.setItem('tn_theme',t);}catch(e){}document.querySelectorAll('.theme-sw .dot').forEach(d=>d.classList.toggle('on',d.dataset.t===t));if(typeof DATA!=='undefined'&&DATA.length)renderDash();}
+
+const GROUPS=[
+  {id:'PS',name:'Problem Solving & Root Cause Analysis',cat:'Technical Skills',
+   kw:['why','qc story','qc tool','7qc','systematic problem','problem solv']},
+  {id:'PDCA',name:'PDCA & Continuous Improvement',cat:'Technical Skills',
+   kw:['pdca','kaizen','a3 think','continuous improv']},
+  {id:'EN',name:'English & Communication Skills',cat:'Generic',
+   kw:['english','email writing','จับใจความ','communication skill']},
+  {id:'LDR',name:'Leadership & Interpersonal Skills',cat:'Leadership',
+   kw:['leadership','leader','empathy','หัวหน้างาน','disc']},
+  {id:'ISO',name:'ISO & Quality Management System',cat:'ISO',
+   kw:['iso','qms','internal audit','process capability','qmr']},
+  {id:'EXL',name:'Excel & Digital Tools',cat:'Generic',
+   kw:['excel','power bi','ai for','digital']},
+  {id:'PRC',name:'Procurement & Supply Chain',cat:'Procurement',
+   kw:['procurement','contract mgmt','import','export','จัดซื้อ','supply chain']},
+  {id:'WH',name:'Warehouse & Inventory',cat:'Warehouse',
+   kw:['warehouse','inventory','คลังสินค้า','สินค้าคงคลัง','spare part','โฟล์คลิฟ','forklift']},
+  {id:'HR',name:'HR Core Skills',cat:'HR Development',
+   kw:['สัมภาษณ์','performance manag','manpower','labor law','กฎหมายแรงงาน','สอบสวน','หนังสือเตือน',
+       'service mind','personal dev','train the trainer','สัมมนา']},
+  {id:'FIN',name:'Finance & Costing',cat:'Generic',
+   kw:['costing','standard cost','บัญชีสินทรัพย์','ต้นทุน']},
+];
+
+const CAT_COLOR={
+  'EHS and law compliances':'#e05252','ISO':'#2d5a9e','Leadership':'#9b59b6',
+  'Technical Skills':'#e8891a','HR Development':'#16a085','Procurement':'#d35400',
+  'Warehouse':'#2980b9','Generic':'#7f8c8d',
+};
+
+const DEPT_COLORS=['#1e3a5f','#2d5a9e','#2a9d5c','#e8891a','#e05252','#9b59b6',
+                   '#16a085','#d35400','#2980b9','#8e44ad','#1abc9c','#f39c12'];
+
+// ============================================================
+// STATE
+// ============================================================
+let DATA=[];          // master dataset
+let FILES=[];         // [{name, dept, count, status, error}]
+let charts={};
+
+// ============================================================
+// UPLOAD HANDLING
+// ============================================================
+function doDrop(e){
+  e.preventDefault();
+  document.getElementById('dz').classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+}
+function handleFiles(fileList){
+  if(typeof XLSX==='undefined'){
+    alert('ไลบรารี XLSX ยังโหลดไม่เสร็จ กรุณารอสักครู่แล้วลองใหม่');return;
+  }
+  Array.from(fileList).forEach(f=>{
+    // Skip if already loaded
+    if(FILES.find(x=>x.name===f.name)) return;
+    FILES.push({name:f.name,dept:'',count:0,status:'loading',error:''});
+    renderFileList();
+    readFile(f);
+  });
+}
+
+function readFile(file){
+  const reader=new FileReader();
+  reader.onerror=()=>setFileStatus(file.name,'err','ไม่สามารถอ่านไฟล์ได้');
+  reader.onload=function(e){
+    try{
+      if(typeof XLSX==='undefined') throw new Error('XLSX library not loaded');
+      const wb=XLSX.read(new Uint8Array(e.target.result),{type:'array',raw:false});
+      const result=parseWorkbook(wb,file.name);
+      if(result.rows.length===0){
+        setFileStatus(file.name,'err','ไม่พบข้อมูลหลักสูตร (Sheet: '+result.sheet+')');return;
+      }
+      // Add to master data
+      DATA.push(...result.rows);
+      setFileStatus(file.name,'ok','',result.dept,result.rows.length);
+      refreshAll();
+    }catch(err){
+      setFileStatus(file.name,'err','Error: '+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function setFileStatus(name,status,error,dept='',count=0){
+  const f=FILES.find(x=>x.name===name);
+  if(f){f.status=status;f.error=error;f.dept=dept;f.count=count;}
+  renderFileList();
+  updateMasterBar();
+}
+
+function renderFileList(){
+  const el=document.getElementById('fileList');
+  el.innerHTML=FILES.map((f,i)=>{
+    const icon=f.status==='ok'?svgIcon('ic-check'):f.status==='err'?svgIcon('ic-x-circle'):svgIcon('ic-loader','spin');
+    const cls=f.status==='ok'?'ok':f.status==='err'?'err':'loading';
+    const info=f.status==='ok'
+      ?`<span class="fi-count">✓ ${f.count} หลักสูตร</span> <span class="fi-dept">| ${f.dept||'—'}</span>`
+      :f.status==='err'
+      ?`<span class="fi-err">${f.error}</span>`
+      :`<span style="color:#2d5a9e;font-size:11px">กำลังอ่าน...</span>`;
+    return `<div class="file-item ${cls}">
+      <span class="fi-icon">${icon}</span>
+      <div style="flex:1">
+        <div class="fi-name">${f.name}</div>
+        <div>${info}</div>
+      </div>
+      <button class="fi-rm" onclick="removeFile(${i})" title="ลบไฟล์นี้">${svgIcon('ic-x')}</button>
+    </div>`;
+  }).join('');
+}
+
+function removeFile(idx){
+  const fname=FILES[idx].name;
+  FILES.splice(idx,1);
+  DATA=DATA.filter(d=>d._src!==fname);
+  renderFileList();
+  updateMasterBar();
+  refreshAll();
+}
+
+function clearAll(){
+  DATA=[];FILES=[];
+  renderFileList();
+  updateMasterBar();
+  ['plan','dash','master'].forEach(t=>{
+    document.getElementById(t+'-empty').style.display='block';
+    document.getElementById(t+'-content').style.display='none';
+  });
+  destroyCharts();
+}
+
+function updateMasterBar(){
+  const ok=DATA.length>0;
+  const bar=document.getElementById('masterBar');
+  bar.className='master-bar'+(ok?' show':'');
+  if(!ok) return;
+  document.getElementById('mbTotal').textContent=DATA.length;
+  document.getElementById('mbDept').textContent=new Set(DATA.map(d=>d.dept)).size;
+  document.getElementById('mbIH').textContent=DATA.filter(d=>d.isInhouse).length;
+  document.getElementById('mbPub').textContent=DATA.filter(d=>!d.isInhouse).length;
+  document.getElementById('mbFiles').textContent=FILES.filter(f=>f.status==='ok').length;
+}
+
+function refreshAll(){
+  if(!DATA.length) return;
+  populateFilters();
+  renderPlan();
+  renderDash();
+  renderMaster();
+  showContent();
+}
+
+function showContent(){
+  ['plan','dash','master'].forEach(t=>{
+    document.getElementById(t+'-empty').style.display='none';
+    document.getElementById(t+'-content').style.display='block';
+  });
+}
+
+// ============================================================
+// WORKBOOK PARSER — AUTO-DETECT FORMAT
+// ============================================================
+function parseWorkbook(wb, filename){
+  // Detect sheet
+  const sn=wb.SheetNames.find(s=>/survey\s*form/i.test(s))
+          ||wb.SheetNames.find(s=>/training\s*need/i.test(s))
+          ||wb.SheetNames.find(s=>s.toLowerCase()==='public')
+          ||wb.SheetNames.find(s=>/public/i.test(s))
+          ||wb.SheetNames[0];
+  const ws=wb.Sheets[sn];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:false});
+
+  // Detect format
+  const isSurveyForm=/survey\s*form/i.test(sn)||/training\s*need/i.test(sn);
+
+  let dept='', data=[];
+  if(isSurveyForm){
+    data=parseSurveyForm(rows, filename);
+    // Dept from Row 1 col C (index 2)
+    dept=String((rows[0]||[])[2]||'').trim()||filename.replace(/\.(xlsx?|xls)$/i,'');
+    data.forEach(d=>{d.dept=dept;});
+  } else {
+    data=parsePublicSheet(rows, filename);
+    dept=[...new Set(data.map(d=>d.dept))].join(', ')||filename.replace(/\.(xlsx?|xls)$/i,'');
+  }
+  data.forEach(d=>{d._src=filename;});
+  return {rows:data, dept, sheet:sn};
+}
+
+// --- Survey Form format (per-department file) ---
+// Row 1: dept in C1
+// Row 12: header, Row 13: sub-header, Row 14: example
+// Data: rows where col A is a number (row 16+)
+function parseSurveyForm(rows, filename){
+  const data=[];
+  // Find data start: first row after header where col[0] is a real number
+  let start=14; // default
+  for(let i=11;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const no=r[0];
+    if(no!==null && !isNaN(parseFloat(no)) && String(r[3]||'').trim().length>2){
+      start=i; break;
+    }
+  }
+  // Dept from row 0 col 2
+  const deptName=String((rows[0]||[])[2]||'').trim();
+
+  for(let i=start;i<rows.length;i++){
+    const r=rows[i]; if(!r) continue;
+    const no=r[0];
+    // Skip non-data rows (no number in col A, or example rows)
+    if(no===null||isNaN(parseFloat(no))) continue;
+    const course=String(r[3]||'').trim();  // col D
+    if(course.length<3) continue;
+
+    const skill=String(r[1]||'').trim();
+    const objective=String(r[2]||'').trim();
+    const criteria=String(r[4]||'').trim();
+    const target=String(r[5]||'').trim();
+    const numPeople=parseNumber(r[6]);       // col G
+    const months=parseMonths(String(r[7]||''));
+    const cost=parseCost(r[8]);              // col I
+    const institute=String(r[9]||'').trim(); // col J
+    const remark=String(r[10]||'').trim();   // col K
+
+    const isLegal=criteria.includes('กฎหมาย')||criteria.includes('กฏหมาย')||criteria.toLowerCase().includes('law');
+    const isInhouse=numPeople>=10;
+    const cat=assignCategory(course,criteria,isLegal,deptName);
+    const grp=isLegal?null:findGroup(course,objective,criteria);
+    const levels=parseLevels(target);
+
+    data.push({
+      course,skill,objective,criteria,isLegal,
+      numPeople,isInhouse,type:isInhouse?'In-house':'Public',
+      months,cost,dept:deptName,target,institute,remark,cat,grp,levels,_src:filename
+    });
+  }
+  return data;
+}
+
+// --- Public sheet format (multi-dept summary) ---
+// Col: A=skill, B=objective, C=course, D=criteria, E=target, F=numPeople, G=month, H=cost, I=institute, J=dept
+function parsePublicSheet(rows, filename){
+  const data=[];
+  let start=3;
+  const hkw=['ชื่อหลักสูตร','course','skill','ทักษะ'];
+  for(let i=0;i<Math.min(rows.length,8);i++){
+    const r=rows[i]; if(!r) continue;
+    const c=String(r[2]||'').trim().toLowerCase();
+    if(!hkw.some(k=>c.includes(k))&&c.length>5){start=i;break;}
+  }
+  for(let i=start;i<rows.length;i++){
+    const r=rows[i]; if(!r||!r[2]) continue;
+    const course=String(r[2]||'').trim();
+    if(course.length<3) continue;
+
+    const criteria=String(r[3]||'').trim();
+    const isLegal=criteria.includes('กฎหมาย')||criteria.includes('กฏหมาย');
+    const numPeople=parseNumber(r[5]);
+    const months=parseMonths(String(r[6]||''));
+    const cost=parseCost(r[7]);
+    const dept=String(r[9]||'').trim()||'ไม่ระบุ';
+    const target=String(r[4]||'').trim();
+    const institute=String(r[8]||'').trim();
+    const isInhouse=numPeople>=10;
+    const cat=assignCategory(course,criteria,isLegal,dept);
+    const grp=isLegal?null:findGroup(course,String(r[1]||''),criteria);
+    const levels=parseLevels(target);
+
+    data.push({
+      course,skill:String(r[0]||''),objective:String(r[1]||''),criteria,isLegal,
+      numPeople,isInhouse,type:isInhouse?'In-house':'Public',
+      months,cost,dept,target,institute,remark:'',cat,grp,levels,_src:filename
+    });
+  }
+  return data;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function parseNumber(v){if(!v&&v!==0)return 0;const s=String(v).replace(/[,\s]/g,'');const m=s.match(/[\d.]+/);return m?parseFloat(m[0]):0;}
+function parseCost(v){if(!v)return 0;const s=String(v).replace(/[,\s฿]/g,'');const m=s.match(/[\d.]+/);return m?parseFloat(m[0]):0;}
+
+function parseMonths(raw){
+  if(!raw||raw==='-')return[];
+  const months=new Set(), up=raw.toUpperCase();
+  const EN=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  const rng=up.match(/([A-Z]{3})[^A-Z]*-[^A-Z]*([A-Z]{3})/);
+  if(rng){const s=EN.indexOf(rng[1]),e=EN.indexOf(rng[2]);if(s>=0&&e>=0)for(let m=s;m<=(e>=s?e:e+12);m++)months.add((m%12)+1);return[...months];}
+  EN.forEach((m,i)=>{if(up.includes(m))months.add(i+1);});
+  const TH=[['มกราคม',1],['กุมภาพันธ์',2],['มีนาคม',3],['เมษายน',4],['พฤษภาคม',5],
+            ['มิถุนายน',6],['กรกฎาคม',7],['กรกฏาคม',7],['สิงหาคม',8],
+            ['กันยายน',9],['ตุลาคม',10],['พฤศจิกายน',11],['ธันวาคม',12]];
+  TH.forEach(([k,v])=>{if(raw.includes(k))months.add(v);});
+  const TA=[['ม.ค',1],['ก.พ',2],['มี.ค',3],['เม.ย',4],['พ.ค',5],['มิ.ย',6],
+            ['ก.ค',7],['ส.ค',8],['ก.ย',9],['ต.ค',10],['พ.ย',11],['ธ.ค',12]];
+  TA.forEach(([k,v])=>{if(raw.includes(k))months.add(v);});
+  return[...months].sort((a,b)=>a-b);
+}
+
+function assignCategory(course,criteria,isLegal,dept){
+  const c=(course+' '+criteria+' '+dept).toLowerCase();
+  if(isLegal||criteria.includes('กฎหมาย')||criteria.includes('กฏหมาย'))return'EHS and law compliances';
+  if(criteria.includes('ภาวะผู้นำ')||c.includes('leadership')||c.includes('leader'))return'Leadership';
+  if(c.includes('iso ')||c.includes('qms')||c.includes(' audit'))return'ISO';
+  if(c.includes('procurement')||c.includes('จัดซื้อ')||c.includes('supply'))return'Procurement';
+  if(c.includes('warehouse')||c.includes('คลังสินค้า')||c.includes('inventory')||c.includes('โฟล์คลิฟ'))return'Warehouse';
+  if(c.includes(' hr')||c.includes('สัมภาษณ์')||c.includes('performance')||c.includes('manpower'))return'HR Development';
+  if(c.includes('why')||c.includes('qc')||c.includes('pdca')||c.includes('kaizen')||c.includes('problem'))return'Technical Skills';
+  return'Generic';
+}
+
+function findGroup(course,obj,criteria){
+  const t=(course+' '+obj+' '+criteria).toLowerCase();
+  for(const g of GROUPS)if(g.kw.some(k=>t.includes(k)))return g.id;
+  return null;
+}
+
+function parseLevels(target){
+  const t=target.toLowerCase();
+  return{
+    mgr:/mgr|manager|ผู้บริหาร|ผู้จัดการ|gm\b|dm\b|sm\b/.test(t),
+    sup:/sup|supervisor|หัวหน้า/.test(t),
+    eng:/eng|engineer/.test(t),
+    officer:/officer|เจ้าหน้าที่/.test(t),
+    tech:/tech|technician/.test(t),
+    clerk:/clerk|storekeeper|keeper/.test(t),
+    op:/operator|op\b|operater/.test(t),
+    all:/all|ทุก/.test(t),
+  };
+}
+
+// ============================================================
+// POPULATE FILTERS
+// ============================================================
+function populateFilters(){
+  const cats=[...new Set(DATA.map(d=>d.cat))].sort();
+  const depts=[...new Set(DATA.map(d=>d.dept))].sort();
+  ['fCat','mCat'].forEach(id=>{
+    const el=document.getElementById(id);
+    const v=el.value;
+    el.innerHTML='<option value="">ทุก Category</option>';
+    cats.forEach(c=>{el.innerHTML+=`<option${c===v?' selected':''}>${c}</option>`;});
+  });
+  ['fDept','mDept','dDept'].forEach(id=>{
+    const el=document.getElementById(id);
+    const v=el.value;
+    el.innerHTML='<option value="">ทุกหน่วยงาน</option>';
+    depts.forEach(d=>{el.innerHTML+=`<option${d===v?' selected':''}>${d}</option>`;});
+  });
+}
+
+// ============================================================
+// RENDER TRAINING PLAN
+// ============================================================
+function getPlanData(){
+  const cat=document.getElementById('fCat').value;
+  const dept=document.getElementById('fDept').value;
+  const month=parseInt(document.getElementById('fMonth').value)||0;
+  const type=document.getElementById('fType').value;
+  const search=(document.getElementById('fSearch').value||'').toLowerCase();
+  return DATA.filter(d=>{
+    if(cat&&d.cat!==cat)return false;
+    if(dept&&d.dept!==dept)return false;
+    if(month&&!d.months.includes(month))return false;
+    if(type&&d.type!==type)return false;
+    if(search&&!d.course.toLowerCase().includes(search)&&!d.dept.toLowerCase().includes(search))return false;
+    return true;
+  });
+}
+
+function renderPlan(){
+  if(!DATA.length)return;
+  const filtered=getPlanData();
+  const bycat={};
+  filtered.forEach(d=>{if(!bycat[d.cat])bycat[d.cat]=[];bycat[d.cat].push(d);});
+
+  let html=`<table>
+    <thead>
+      <tr>
+        <th rowspan="2">No</th>
+        <th rowspan="2" style="min-width:80px">Category</th>
+        <th rowspan="2" class="td-c">Training Course</th>
+        <th rowspan="2" class="td-o">Objective</th>
+        <th rowspan="2">ประเภท</th>
+        <th rowspan="2" style="min-width:80px">หน่วยงาน</th>
+        <th rowspan="2" style="min-width:90px">Target Dept</th>
+        <th colspan="8">กลุ่มเป้าหมาย</th>
+        <th rowspan="2">รวมพนง.</th><th rowspan="2">คน/รุ่น</th>
+        <th rowspan="2">รุ่น</th><th rowspan="2">ชม./รุ่น</th>
+        <th rowspan="2">คชจ/รุ่น (฿)</th>
+        ${MS.map(m=>`<th class="th-m" rowspan="2">${m}</th>`).join('')}
+        <th rowspan="2">หมายเหตุ</th>
+      </tr>
+      <tr><th>Mgr</th><th>Sup</th><th>Eng</th><th>Off</th><th>Tech</th><th>Clerk</th><th>Op</th><th>All</th></tr>
+    </thead>
+    <tbody>`;
+
+  let no=1;
+  Object.keys(bycat).sort().forEach(cat=>{
+    const rows=bycat[cat];
+    const col=CAT_COLOR[cat]||'#555';
+    const totalPpl=rows.reduce((s,d)=>s+d.numPeople,0);
+    html+=`<tr class="cat-hdr"><td colspan="36" style="border-left:4px solid ${col};padding-left:12px">
+      ${cat}
+      <span style="font-weight:400;color:var(--muted);font-size:10px">&nbsp;${rows.length} หลักสูตร | ${totalPpl.toLocaleString()} คน</span>
+    </td></tr>`;
+
+    rows.forEach(d=>{
+      const tb=d.isLegal?`<span class="badge b-law">ตามกฎหมาย</span>`:
+               d.isInhouse?`<span class="badge b-ih">In-house</span>`:
+               `<span class="badge b-pub">Public</span>`;
+      const L=d.levels;
+      const X=v=>v?'<td class="xk td-n">✓</td>':'<td class="td-n"></td>';
+      const sess=Math.max(1,d.numPeople>0?Math.ceil(d.numPeople/Math.min(d.numPeople,30)):1);
+      const hrs=d.isLegal?8:d.numPeople>=30?16:8;
+      const mCells=MS.map((_,i)=>d.months.includes(i+1)?`<td class="td-m">${sess}</td>`:'<td></td>').join('');
+      const grpN=d.grp?GROUPS.find(g=>g.id===d.grp)?.name||'':'';
+
+      html+=`<tr>
+        <td class="td-n">${no++}</td>
+        <td><span style="font-size:9px;font-weight:600;color:${col}">${cat}</span></td>
+        <td class="td-c">${d.course}</td>
+        <td class="td-o">${d.objective||d.skill||''}</td>
+        <td>${tb}</td>
+        <td style="font-size:10px">${d.dept}</td>
+        <td style="font-size:10px">${d.target}</td>
+        ${X(L.mgr)}${X(L.sup)}${X(L.eng)}${X(L.officer)}${X(L.tech)}${X(L.clerk)}${X(L.op)}
+        ${X(L.all||(!L.mgr&&!L.sup&&!L.eng&&!L.officer&&!L.tech&&!L.clerk&&!L.op))}
+        <td class="td-n">${d.numPeople||'-'}</td>
+        <td class="td-n">${d.numPeople>0?Math.min(d.numPeople,30):'-'}</td>
+        <td class="td-n">${sess}</td>
+        <td class="td-n">${hrs}</td>
+        <td class="td-n">${d.cost>0?d.cost.toLocaleString():'-'}</td>
+        ${mCells}
+        <td style="font-size:10px;color:var(--muted);min-width:90px">${d.remark||grpN}</td>
+      </tr>`;
+    });
+  });
+  if(!filtered.length) html+=`<tr><td colspan="36" class="no-data">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</td></tr>`;
+  html+='</tbody></table>';
+  document.getElementById('planTbl').innerHTML=html;
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDash(){
+  if(!DATA.length)return;
+  const deptF=document.getElementById('dDept').value;
+  const d=deptF?DATA.filter(x=>x.dept===deptF):DATA;
+
+  const ih=d.filter(x=>x.isInhouse).length, pub=d.filter(x=>!x.isInhouse).length;
+  const legal=d.filter(x=>x.isLegal).length;
+  const ppl=d.reduce((s,x)=>s+(x.numPeople||0),0);
+  const budget=d.reduce((s,x)=>s+x.cost,0);
+
+  document.getElementById('sumCards').innerHTML=`
+    <div class="card"><div class="clbl">หลักสูตรทั้งหมด</div><div class="cval">${d.length}</div><div class="csub">หลักสูตร</div></div>
+    <div class="card g"><div class="clbl">In-house</div><div class="cval">${ih}</div><div class="csub">≥10 คน</div></div>
+    <div class="card o"><div class="clbl">Public</div><div class="cval">${pub}</div><div class="csub"><10 คน</div></div>
+    <div class="card r"><div class="clbl">ตามกฎหมาย</div><div class="cval">${legal}</div></div>
+    <div class="card"><div class="clbl">หน่วยงาน</div><div class="cval">${new Set(d.map(x=>x.dept)).size}</div></div>
+    <div class="card"><div class="clbl">พนักงานรวม</div><div class="cval">${ppl.toLocaleString()}</div><div class="csub">คน</div></div>
+    <div class="card o"><div class="clbl">งบประมาณ</div><div class="cval">${budget>0?(budget/1000).toFixed(0)+'K':'N/A'}</div><div class="csub">บาท</div></div>
+  `;
+
+  destroyCharts();
+
+  // Category bar
+  const catC={};d.forEach(x=>{catC[x.cat]=(catC[x.cat]||0)+1;});
+  const cL=Object.keys(catC).sort((a,b)=>catC[b]-catC[a]);
+  charts.cat=mkBar('cCat',cL,cL.map(c=>catC[c]),cL.map(c=>CAT_COLOR[c]||'#888'));
+
+  // Dept stacked bar
+  const depts=[...new Set(DATA.map(x=>x.dept))].sort();
+  const deptIH={},deptPub={};
+  d.forEach(x=>{
+    if(x.isInhouse)deptIH[x.dept]=(deptIH[x.dept]||0)+1;
+    else deptPub[x.dept]=(deptPub[x.dept]||0)+1;
+  });
+  charts.dept=new Chart(document.getElementById('cDept'),{
+    type:'bar',
+    data:{labels:depts,datasets:[
+      {label:'In-house',data:depts.map(d=>deptIH[d]||0),backgroundColor:cssv('--g')},
+      {label:'Public',data:depts.map(d=>deptPub[d]||0),backgroundColor:cssv('--pri2')}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      scales:{x:{stacked:true,ticks:{font:{size:9}}},y:{stacked:true}},
+      plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}
+  });
+
+  // Monthly line
+  const mc=Array(12).fill(0);
+  d.forEach(x=>x.months.forEach(m=>{if(m>=1&&m<=12)mc[m-1]++;}));
+  charts.month=new Chart(document.getElementById('cMonth'),{
+    type:'line',
+    data:{labels:MS,datasets:[{label:'หลักสูตร',data:mc,borderColor:cssv('--pri2'),backgroundColor:'rgba(85,112,153,.13)',fill:true,tension:.4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}}}}
+  });
+
+  // Budget bar
+  const dB={};d.forEach(x=>{if(x.cost>0)dB[x.dept]=(dB[x.dept]||0)+x.cost;});
+  const bL=Object.keys(dB).sort((a,b)=>dB[b]-dB[a]);
+  charts.budget=mkBar('cBudget',bL,bL.map(c=>dB[c]),bL.map((_,i)=>DEPT_COLORS[i%DEPT_COLORS.length]));
+
+  // Top 10 people
+  const top=[...d].filter(x=>x.numPeople>0).sort((a,b)=>b.numPeople-a.numPeople).slice(0,10);
+  charts.ppl=new Chart(document.getElementById('cPeople'),{
+    type:'bar',
+    data:{labels:top.map(x=>x.course.length>22?x.course.substring(0,20)+'…':x.course),
+          datasets:[{label:'คน',data:top.map(x=>x.numPeople),backgroundColor:top.map(x=>x.isInhouse?cssv('--g'):cssv('--pri2'))}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},scales:{y:{ticks:{font:{size:9}}}}}
+  });
+
+  // Criteria pie
+  const critC={};
+  d.forEach(x=>{
+    const k=x.criteria.includes('กฎหมาย')||x.criteria.includes('กฏหมาย')?'ตามกฎหมาย':
+             x.criteria.includes('ภาวะ')?'ภาวะผู้นำ':
+             x.criteria.includes('ทักษะ')?'ทักษะจำเป็น':
+             x.criteria.includes('ข้อกำหนด')?'ข้อกำหนด':'อื่นๆ';
+    critC[k]=(critC[k]||0)+1;
+  });
+  charts.crit=new Chart(document.getElementById('cCrit'),{
+    type:'pie',
+    data:{labels:Object.keys(critC),datasets:[{data:Object.values(critC),backgroundColor:['#e05252','#9b59b6','#e8891a','#2d5a9e','#888']}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:10}}}}}
+  });
+}
+
+function mkBar(id,labels,data,colors){
+  return new Chart(document.getElementById(id),{
+    type:'bar',
+    data:{labels,datasets:[{data,backgroundColor:colors}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:9}}}}}
+  });
+}
+function destroyCharts(){Object.values(charts).forEach(c=>{try{c.destroy();}catch(e){}});charts={};}
+
+// ============================================================
+// MASTER DATA TABLE
+// ============================================================
+function renderMaster(){
+  const s=(document.getElementById('mSearch').value||'').toLowerCase();
+  const cat=document.getElementById('mCat').value;
+  const dept=document.getElementById('mDept').value;
+  const type=document.getElementById('mType').value;
+  const d=DATA.filter(x=>{
+    if(s&&!x.course.toLowerCase().includes(s)&&!x.dept.toLowerCase().includes(s))return false;
+    if(cat&&x.cat!==cat)return false;
+    if(dept&&x.dept!==dept)return false;
+    if(type&&x.type!==type)return false;
+    return true;
+  });
+  document.getElementById('mCount').textContent=`แสดง ${d.length} / ${DATA.length} รายการ`;
+  let html='';
+  d.forEach((x,i)=>{
+    const tc=x.isLegal?'b-law':x.isInhouse?'b-ih':'b-pub';
+    const tl=x.isLegal?'ตามกฎหมาย':x.type;
+    const mc=x.months.map(m=>`<span class="mtag">${MS[m-1]}</span>`).join('');
+    const col=CAT_COLOR[x.cat]||'#888';
+    html+=`<tr>
+      <td class="td-n">${i+1}</td>
+      <td style="font-size:10px;max-width:120px;white-space:normal"><span class="badge b-src">${x._src.replace(/\.(xlsx?|xls)$/i,'')}</span></td>
+      <td style="font-size:10px">${x.dept}</td>
+      <td><span style="font-size:9px;font-weight:600;color:${col}">${x.cat}</span></td>
+      <td class="td-c"><b>${x.course}</b></td>
+      <td><span class="badge ${tc}">${tl}</span></td>
+      <td style="font-size:10px">${x.target}</td>
+      <td class="td-n">${x.numPeople||'-'}</td>
+      <td>${mc||'<span style="color:#999">-</span>'}</td>
+      <td class="td-n">${x.cost>0?x.cost.toLocaleString():'-'}</td>
+      <td style="font-size:10px">${x.institute||'-'}</td>
+      <td style="font-size:10px">${x.criteria||'-'}</td>
+    </tr>`;
+  });
+  document.getElementById('masterTbl').innerHTML=html||`<tr><td colspan="12" class="no-data">ไม่พบข้อมูล</td></tr>`;
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportMasterXlsx(){
+  const h=['No','ไฟล์ต้นทาง','หน่วยงาน','Category','ชื่อหลักสูตร','วัตถุประสงค์',
+           'ประเภท','กลุ่มเป้าหมาย','จำนวนคน','เดือน','ค่าใช้จ่าย/รุ่น','สถาบัน','เกณฑ์','หมายเหตุ'];
+  const rows=DATA.map((d,i)=>[
+    i+1, d._src, d.dept, d.cat, d.course, d.objective,
+    d.isLegal?'ตามกฎหมาย':d.type, d.target,
+    d.numPeople||0, d.months.map(m=>MN[m-1]).join(', '),
+    d.cost||0, d.institute, d.criteria, d.remark||''
+  ]);
+  const ws=XLSX.utils.aoa_to_sheet([h,...rows]);
+  ws['!cols']=[{wch:5},{wch:30},{wch:20},{wch:22},{wch:35},{wch:30},
+    {wch:12},{wch:20},{wch:8},{wch:25},{wch:10},{wch:20},{wch:15},{wch:20}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Master Data');
+  XLSX.writeFile(wb,'Training_Needs_MasterData.xlsx');
+}
+
+function exportPlanXlsx(){
+  const filtered=getPlanData();
+  const h=['No','Category','Training Course','Objective','ประเภทการอบรม','หน่วยงาน','วิทยากร','หน่วยงานเป้าหมาย',
+           'Mgr','Sup','Eng','Officer','Tech','Clerk','Op','All',
+           'รวมพนง.','คน/รุ่น','จำนวนรุ่น','ชม./รุ่น','คชจ/รุ่น',
+           'ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.','หมายเหตุ'];
+  const rows=[h];
+  const bycat={};
+  filtered.forEach(d=>{if(!bycat[d.cat])bycat[d.cat]=[];bycat[d.cat].push(d);});
+  let no=1;
+  Object.keys(bycat).sort().forEach(cat=>{
+    rows.push([cat,...Array(h.length-1).fill(null)]);
+    bycat[cat].forEach(d=>{
+      const L=d.levels,x=v=>v?'X':'';
+      const sess=Math.max(1,d.numPeople>0?Math.ceil(d.numPeople/Math.min(d.numPeople,30)):1);
+      rows.push([
+        no++, cat, d.course, d.objective||d.skill,
+        d.isLegal?'In-house (ตามกฎหมาย)':d.type,
+        d.dept, d.institute||'External', d.target,
+        x(L.mgr),x(L.sup),x(L.eng),x(L.officer),x(L.tech),x(L.clerk),x(L.op),
+        x(L.all||(!L.mgr&&!L.sup&&!L.eng&&!L.officer&&!L.tech&&!L.clerk&&!L.op)),
+        d.numPeople||0, Math.min(d.numPeople||30,30), sess,
+        d.isLegal?8:d.numPeople>=30?16:8, d.cost||0,
+        ...[...Array(12)].map((_,i)=>d.months.includes(i+1)?sess:null),
+        d.remark||''
+      ]);
+    });
+  });
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:5},{wch:22},{wch:35},{wch:30},{wch:14},{wch:18},{wch:14},{wch:20},
+    ...Array(8).fill({wch:5}),{wch:10},{wch:8},{wch:8},{wch:7},{wch:10},
+    ...Array(12).fill({wch:5}),{wch:25}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Training Plan Y2026');
+  XLSX.writeFile(wb,'Training_Plan_Y2026.xlsx');
+}
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function goTab(id,btn){
+  document.querySelectorAll('.tc').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+  btn.classList.add('on');
+}
+function goTabBtn(id){
+  const btn=document.querySelector(`.tab[onclick*="'${id}'"]`);
+  if(btn)goTab(id,btn);
+}
+
+// Fallback CDN
+(function(){let t='slate';try{t=localStorage.getItem('tn_theme')||'slate';}catch(e){}setTheme(t);})();
+window.addEventListener('load',()=>{
+  if(typeof XLSX==='undefined'){
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    document.head.appendChild(s);
+  }
+});
+</script>
+</body>
+</html>
